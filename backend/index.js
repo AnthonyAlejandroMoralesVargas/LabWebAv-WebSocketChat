@@ -44,12 +44,10 @@ const db = admin.firestore();
 const MESSAGES_COLLECTION = process.env.FIRESTORE_COLLECTION_MESSAGES || 'messages';
 const USERS_COLLECTION = process.env.FIRESTORE_COLLECTION_USERS || 'users';
 
-// ========== CONFIGURACIÓN DE CORS ==========
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:4000'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requests sin origin (como mobile apps o curl)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.includes(origin)) {
@@ -64,7 +62,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// ========== ENDPOINT DE SALUD ==========
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -74,7 +71,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ========== ENDPOINT PARA OBTENER HISTORIAL DE MENSAJES ==========
 app.get('/api/messages', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
@@ -96,19 +92,16 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// ========== CREAR SERVIDOR HTTP ==========
 const server = app.listen(port, () => {
   console.log(`🚀 Backend WebSocket corriendo en http://localhost:${port}`);
   console.log(`🔒 Orígenes permitidos: ${allowedOrigins.join(', ')}`);
 });
 
-// ========== CREAR SERVIDOR WEBSOCKET ==========
 const wss = new WebSocket.Server({ 
   server,
   verifyClient: (info, callback) => {
     const origin = info.origin || info.req.headers.origin;
     
-    // Verificar origen
     if (origin && !allowedOrigins.includes(origin)) {
       console.warn(`❌ WebSocket bloqueado desde: ${origin}`);
       callback(false, 403, 'Origen no permitido');
@@ -119,10 +112,8 @@ const wss = new WebSocket.Server({
   }
 });
 
-// Almacenar conexiones activas con información del usuario
 const clients = new Map();
 
-// ========== FUNCIÓN PARA VERIFICAR TOKEN JWT ==========
 async function verifyToken(token) {
   try {
     // Verificar token de Firebase
@@ -139,7 +130,6 @@ async function verifyToken(token) {
   }
 }
 
-// ========== GUARDAR MENSAJE EN FIRESTORE ==========
 async function saveMessage(messageData) {
   try {
     const messageRef = await db.collection(MESSAGES_COLLECTION).add({
@@ -156,7 +146,6 @@ async function saveMessage(messageData) {
   }
 }
 
-// ========== CONEXIÓN WEBSOCKET ==========
 wss.on('connection', async (ws, req) => {
   console.log('🔌 Nueva conexión WebSocket recibida');
   
@@ -166,19 +155,17 @@ wss.on('connection', async (ws, req) => {
     username: 'Anónimo'
   };
   
-  // Esperar mensaje de autenticación
   const authTimeout = setTimeout(() => {
     if (!clientInfo.authenticated) {
       console.log('⏱️ Timeout de autenticación');
       ws.close(1008, 'Autenticación requerida');
     }
-  }, 10000); // 10 segundos para autenticarse
+  }, 10000);
 
   ws.on('message', async (data) => {
     try {
       const message = JSON.parse(data);
       
-      // Manejar autenticación
       if (message.type === 'auth') {
         const verification = await verifyToken(message.token);
         
@@ -194,13 +181,11 @@ wss.on('connection', async (ws, req) => {
           clients.set(ws, clientInfo);
           console.log(`✅ Usuario autenticado: ${clientInfo.username} (${clientInfo.uid})`);
           
-          // Enviar confirmación
           ws.send(JSON.stringify({
             type: 'auth_success',
             message: 'Autenticación exitosa'
           }));
           
-          // Enviar historial reciente
           try {
             const snapshot = await db.collection(MESSAGES_COLLECTION)
               .orderBy('timestamp', 'desc')
@@ -232,7 +217,6 @@ wss.on('connection', async (ws, req) => {
         return;
       }
       
-      // Verificar que esté autenticado para otros mensajes
       if (!clientInfo.authenticated) {
         ws.send(JSON.stringify({
           type: 'error',
@@ -241,7 +225,6 @@ wss.on('connection', async (ws, req) => {
         return;
       }
       
-      // Manejar mensaje de chat
       if (message.type === 'message' || message.text) {
         const messageData = {
           username: clientInfo.username,
@@ -251,10 +234,8 @@ wss.on('connection', async (ws, req) => {
           timestamp: new Date().toISOString()
         };
         
-        // Guardar en Firestore
         await saveMessage(messageData);
         
-        // Broadcast a todos los clientes autenticados
         const broadcastMessage = JSON.stringify({
           type: 'message',
           username: messageData.username,
@@ -296,7 +277,6 @@ wss.on('connection', async (ws, req) => {
   });
 });
 
-// ========== MANEJO DE CIERRE GRACEFUL ==========
 process.on('SIGTERM', () => {
   console.log('SIGTERM recibido. Cerrando servidor...');
   server.close(() => {
