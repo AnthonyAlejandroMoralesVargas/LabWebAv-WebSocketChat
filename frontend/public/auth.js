@@ -1,4 +1,3 @@
-// ========== VARIABLES GLOBALES DE AUTENTICACIÓN ==========
 var currentUser = null;
 var authToken = null;
 
