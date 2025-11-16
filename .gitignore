@@ -1,0 +1,32 @@
+# 1. DEPENDENCIAS
+node_modules/
+
+# 2. ARCHIVOS DE ENTORNO
+.env
+.env.local
+.env.test
+.env.production
+.env.*.local
+
+# 3. CARPETAS DE BUILD/DISTRIBUCIÓN
+dist/
+build/
+.next/   
+.output/  
+
+# 4. LOGS
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 5. ARCHIVOS DE SISTEMA OPERATIVO Y EDITORES
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 6. ARCHIVOS DE GESTORES DE PAQUETES
+yarn.lock
+pnpm-lock.yaml
