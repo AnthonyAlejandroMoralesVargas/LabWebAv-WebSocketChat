@@ -1,9 +1,8 @@
-// auth.js - Sistema de Autenticación
+// ========== VARIABLES GLOBALES DE AUTENTICACIÓN ==========
+var currentUser = null;
+var authToken = null;
 
-let currentUser = null;
-let authToken = null;
-
-// Modificar el formulario de login para incluir registro
+// ========== INICIALIZACIÓN DEL FORMULARIO ==========
 document.addEventListener('DOMContentLoaded', () => {
     updateLoginForm();
 });
@@ -65,6 +64,7 @@ function updateLoginForm() {
     document.getElementById('randomUserBtn').addEventListener('click', handleRandomUser);
 }
 
+// ========== MANEJO DE LOGIN ==========
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const email = document.getElementById('emailInput').value.trim();
@@ -87,8 +87,13 @@ async function handleLoginSubmit(e) {
         authToken = await currentUser.getIdToken();
         username = currentUser.displayName || displayName;
         
-        showChatScreen();
-        connectWebSocket();
+        console.log('✅ Login exitoso:', username);
+        
+        // Llamar a función del app.js para mostrar chat
+        if (typeof showChatScreen === 'function') {
+            showChatScreen();
+            connectWebSocket();
+        }
         
     } catch (error) {
         console.error('Error en login:', error);
@@ -98,6 +103,7 @@ async function handleLoginSubmit(e) {
     }
 }
 
+// ========== REGISTRO DE USUARIO ==========
 async function handleRegister() {
     const email = document.getElementById('emailInput').value.trim();
     const password = document.getElementById('passwordInput').value;
@@ -130,9 +136,14 @@ async function handleRegister() {
         authToken = await currentUser.getIdToken();
         username = displayName;
         
+        console.log('✅ Registro exitoso:', username);
         alert('¡Cuenta creada exitosamente!');
-        showChatScreen();
-        connectWebSocket();
+        
+        // Llamar a función del app.js
+        if (typeof showChatScreen === 'function') {
+            showChatScreen();
+            connectWebSocket();
+        }
         
     } catch (error) {
         console.error('Error en registro:', error);
@@ -142,6 +153,7 @@ async function handleRegister() {
     }
 }
 
+// ========== USUARIO ALEATORIO ==========
 async function handleRandomUser() {
     try {
         showLoading(true);
@@ -152,7 +164,7 @@ async function handleRandomUser() {
         
         // Generar credenciales
         const email = userData.email;
-        const password = 'Random123!'; // Contraseña temporal
+        const password = 'Random123!';
         const displayName = `${userData.first_name} ${userData.last_name}`;
         
         // Rellenar formulario
@@ -170,6 +182,7 @@ async function handleRandomUser() {
     }
 }
 
+// ========== MENSAJES DE ERROR ==========
 function getErrorMessage(errorCode) {
     const errorMessages = {
         'auth/email-already-in-use': 'Este email ya está registrado',
@@ -178,12 +191,14 @@ function getErrorMessage(errorCode) {
         'auth/wrong-password': 'Contraseña incorrecta',
         'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
         'auth/network-request-failed': 'Error de conexión. Verifica tu internet.',
-        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde.'
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde.',
+        'auth/invalid-credential': 'Credenciales inválidas. Verifica tu email y contraseña.'
     };
     
     return errorMessages[errorCode] || 'Error de autenticación: ' + errorCode;
 }
 
+// ========== UI HELPERS ==========
 function showLoading(show) {
     const loginForm = document.getElementById('loginForm');
     const buttons = loginForm.querySelectorAll('button');
@@ -199,12 +214,14 @@ function showLoading(show) {
     }
 }
 
-// Escuchar cambios en el estado de autenticación
+// ========== MONITOR DE ESTADO DE AUTENTICACIÓN ==========
 auth.onAuthStateChanged(async (user) => {
     if (user && !currentUser) {
         currentUser = user;
         authToken = await user.getIdToken();
         username = user.displayName || user.email;
+        
+        console.log('✅ Estado de autenticación:', username);
         
         // Actualizar último login
         try {
@@ -216,3 +233,5 @@ auth.onAuthStateChanged(async (user) => {
         }
     }
 });
+
+console.log('✅ auth.js cargado');

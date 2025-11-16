@@ -1,10 +1,10 @@
 // ========== VARIABLES GLOBALES ==========
-let ws = null;
-let username = '';
-let currentTheme = 'light';
-let isConnected = false;
-let authToken = null;
-let currentUser = null;
+// NOTA: Algunas variables ya están definidas en auth.js
+var ws = ws || null;
+var username = username || '';
+var currentTheme = currentTheme || 'light';
+var isConnected = isConnected || false;
+// authToken y currentUser ya están definidos en auth.js
 
 // ========== ELEMENTOS DEL DOM ==========
 const loginScreen = document.getElementById('loginScreen');

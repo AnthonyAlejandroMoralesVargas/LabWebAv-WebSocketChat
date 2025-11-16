@@ -1,21 +1,44 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); // Buscar .env en la raíz
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ========== CONFIGURACIÓN DE FIREBASE ADMIN ==========
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-  })
-});
+
+let firebaseConfig;
+const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
+
+if (fs.existsSync(serviceAccountPath)) {
+
+  const serviceAccount = require(serviceAccountPath);
+  firebaseConfig = {
+    credential: admin.credential.cert(serviceAccount)
+  };
+  console.log('✅ Firebase configurado desde archivo JSON');
+} else if (process.env.FIREBASE_PROJECT_ID) {
+  
+  firebaseConfig = {
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+    })
+  };
+  console.log('✅ Firebase configurado desde variables de entorno');
+} else {
+  console.error('❌ ERROR: No se encontró configuración de Firebase');
+  console.error('Por favor configura:');
+  console.error('1. Crea el archivo firebase-service-account.json');
+  console.error('2. O configura las variables en .env');
+  process.exit(1);
+}
+
+admin.initializeApp(firebaseConfig);
 
 const db = admin.firestore();
 const MESSAGES_COLLECTION = process.env.FIRESTORE_COLLECTION_MESSAGES || 'messages';
@@ -46,7 +69,8 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    connections: clients.size 
+    connections: clients.size,
+    firebase: admin.apps.length > 0 ? 'connected' : 'disconnected'
   });
 });
 

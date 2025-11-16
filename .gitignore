@@ -30,3 +30,8 @@ Thumbs.db
 # 6. ARCHIVOS DE GESTORES DE PAQUETES
 yarn.lock
 pnpm-lock.yaml
+
+# 7. FIREBASE CREDENTIALS 
+**/firebase-service-account.json
+firebase-credentials.json
+serviceAccountKey.json

@@ -9,5 +9,9 @@ const firebaseConfig = {
 };
 // Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
+
+// Referencias globales
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+console.log('✅ Firebase inicializado correctamente');
