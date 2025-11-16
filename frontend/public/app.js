@@ -3,12 +3,13 @@ let ws = null;
 let username = '';
 let currentTheme = 'light';
 let isConnected = false;
+let authToken = null;
+let currentUser = null;
 
 // ========== ELEMENTOS DEL DOM ==========
 const loginScreen = document.getElementById('loginScreen');
 const chatScreen = document.getElementById('chatScreen');
 const loginForm = document.getElementById('loginForm');
-const usernameInput = document.getElementById('usernameInput');
 const currentUsernameSpan = document.getElementById('currentUsername');
 const messagesContainer = document.getElementById('messagesContainer');
 const messageForm = document.getElementById('messageForm');
@@ -23,12 +24,10 @@ const statusText = document.getElementById('statusText');
 document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     setupEventListeners();
-    usernameInput.focus();
 });
 
 // ========== CONFIGURAR EVENT LISTENERS ==========
 function setupEventListeners() {
-    loginForm.addEventListener('submit', handleLogin);
     messageForm.addEventListener('submit', handleSendMessage);
     themeToggle.addEventListener('click', toggleTheme);
     logoutBtn.addEventListener('click', handleLogout);
@@ -42,21 +41,8 @@ function setupEventListeners() {
     });
 }
 
-// ========== MANEJAR LOGIN ==========
-function handleLogin(e) {
-    e.preventDefault();
-    const usernameValue = usernameInput.value.trim();
-    
-    if (usernameValue) {
-        username = usernameValue;
-        showChatScreen();
-        connectWebSocket();
-    }
-}
-
-// ========== CONECTAR WEBSOCKET ==========
+// ========== CONECTAR WEBSOCKET CON AUTENTICACIÓN ==========
 function connectWebSocket() {
-    // Conectar al backend en el puerto 3000
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//localhost:3000`;
     
@@ -67,18 +53,51 @@ function connectWebSocket() {
         
         ws.onopen = () => {
             console.log('✅ Conectado al servidor WebSocket');
-            isConnected = true;
-            updateConnectionStatus('connected');
-            addSystemMessage('Conectado al chat');
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            messageInput.focus();
+            
+            // Enviar token de autenticación
+            if (authToken) {
+                ws.send(JSON.stringify({
+                    type: 'auth',
+                    token: authToken,
+                    username: username
+                }));
+            }
         };
         
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                addReceivedMessage(data);
+                
+                switch (data.type) {
+                    case 'auth_success':
+                        isConnected = true;
+                        updateConnectionStatus('connected');
+                        addSystemMessage('Conectado al chat');
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
+                        break;
+                        
+                    case 'history':
+                        // Cargar historial de mensajes
+                        data.messages.forEach(msg => {
+                            addReceivedMessage(msg, true);
+                        });
+                        addSystemMessage('--- Historial cargado ---');
+                        break;
+                        
+                    case 'message':
+                        addReceivedMessage(data);
+                        break;
+                        
+                    case 'error':
+                        console.error('Error del servidor:', data.message);
+                        addSystemMessage(`Error: ${data.message}`);
+                        break;
+                        
+                    default:
+                        console.log('Mensaje no manejado:', data);
+                }
             } catch (error) {
                 console.error('Error al parsear mensaje:', error);
             }
@@ -100,7 +119,7 @@ function connectWebSocket() {
             
             // Intentar reconexión después de 3 segundos
             setTimeout(() => {
-                if (username) {
+                if (username && authToken) {
                     connectWebSocket();
                 }
             }, 3000);
@@ -150,15 +169,12 @@ function handleSendMessage(e) {
     }
     
     const message = {
-        username: username,
+        type: 'message',
         text: messageText
     };
     
     try {
-        // Enviar mensaje al servidor
         ws.send(JSON.stringify(message));
-        
-        // Limpiar input
         messageInput.value = '';
         messageInput.focus();
     } catch (error) {
@@ -167,10 +183,15 @@ function handleSendMessage(e) {
     }
 }
 
-// ========== AGREGAR MENSAJE RECIBIDO (Alineado a la DERECHA) ==========
-function addReceivedMessage(message) {
+// ========== AGREGAR MENSAJE RECIBIDO ==========
+function addReceivedMessage(message, isHistory = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message message-received';
+    
+    // Si es mensaje propio, cambiar estilo
+    if (currentUser && message.uid === currentUser.uid) {
+        messageDiv.className = 'message message-sent';
+    }
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
@@ -193,7 +214,10 @@ function addReceivedMessage(message) {
     messageDiv.appendChild(contentDiv);
     
     messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
+    
+    if (!isHistory) {
+        scrollToBottom();
+    }
 }
 
 // ========== AGREGAR MENSAJE DEL SISTEMA ==========
@@ -229,22 +253,31 @@ function showChatScreen() {
 function showLoginScreen() {
     chatScreen.classList.add('d-none');
     loginScreen.classList.remove('d-none');
-    usernameInput.value = '';
-    usernameInput.focus();
 }
 
 // ========== MANEJAR LOGOUT ==========
-function handleLogout() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
+async function handleLogout() {
+    try {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+        }
+        
+        // Cerrar sesión de Firebase
+        if (auth.currentUser) {
+            await auth.signOut();
+        }
+        
+        ws = null;
+        username = '';
+        authToken = null;
+        currentUser = null;
+        isConnected = false;
+        messagesContainer.innerHTML = '';
+        
+        showLoginScreen();
+    } catch (error) {
+        console.error('Error en logout:', error);
     }
-    
-    ws = null;
-    username = '';
-    isConnected = false;
-    messagesContainer.innerHTML = '';
-    
-    showLoginScreen();
 }
 
 // ========== TOGGLE TEMA ==========
