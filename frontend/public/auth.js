@@ -144,18 +144,20 @@ async function handleRandomUser() {
     try {
         showLoading(true);
         
-        const response = await fetch('https://random-data-api.com/api/v2/users');
-        const userData = await response.json();
-        
-        const email = userData.email;
+        const response = await fetch('https://randomuser.me/api/');
+        const data = await response.json();
+                 
+        const user = data.results[0];
+                
+        const email = user.email;
         const password = 'Random123!';
-        const displayName = `${userData.first_name} ${userData.last_name}`;
-        
+        const displayName = `${user.name.first} ${user.name.last}`;
+                
         document.getElementById('emailInput').value = email;
         document.getElementById('passwordInput').value = password;
         document.getElementById('usernameInput').value = displayName;
-        
-        alert(`Usuario generado:\nEmail: ${email}\nContraseña: ${password}\n\nPuedes registrarte con estos datos o modificarlos.`);
+                
+        alert(`Usuario generado: ${displayName}\nEmail: ${email}\nContraseña: ${password}\n\nPuedes registrarte con estos datos o modificarlos.`);
         
     } catch (error) {
         console.error('Error al obtener usuario aleatorio:', error);
