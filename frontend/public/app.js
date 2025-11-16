@@ -1,12 +1,8 @@
-// ========== VARIABLES GLOBALES ==========
-// NOTA: Algunas variables ya están definidas en auth.js
 var ws = ws || null;
 var username = username || '';
 var currentTheme = currentTheme || 'light';
 var isConnected = isConnected || false;
-// authToken y currentUser ya están definidos en auth.js
 
-// ========== ELEMENTOS DEL DOM ==========
 const loginScreen = document.getElementById('loginScreen');
 const chatScreen = document.getElementById('chatScreen');
 const loginForm = document.getElementById('loginForm');
@@ -20,13 +16,11 @@ const logoutBtn = document.getElementById('logoutBtn');
 const connectionStatus = document.getElementById('connectionStatus');
 const statusText = document.getElementById('statusText');
 
-// ========== INICIALIZACIÓN ==========
 document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     setupEventListeners();
 });
 
-// ========== CONFIGURAR EVENT LISTENERS ==========
 function setupEventListeners() {
     messageForm.addEventListener('submit', handleSendMessage);
     themeToggle.addEventListener('click', toggleTheme);
@@ -41,7 +35,6 @@ function setupEventListeners() {
     });
 }
 
-// ========== CONECTAR WEBSOCKET CON AUTENTICACIÓN ==========
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//localhost:3000`;
@@ -54,7 +47,6 @@ function connectWebSocket() {
         ws.onopen = () => {
             console.log('✅ Conectado al servidor WebSocket');
             
-            // Enviar token de autenticación
             if (authToken) {
                 ws.send(JSON.stringify({
                     type: 'auth',
@@ -79,7 +71,6 @@ function connectWebSocket() {
                         break;
                         
                     case 'history':
-                        // Cargar historial de mensajes
                         data.messages.forEach(msg => {
                             addReceivedMessage(msg, true);
                         });
@@ -116,8 +107,7 @@ function connectWebSocket() {
             addSystemMessage('Desconectado del chat. Intentando reconectar...');
             messageInput.disabled = true;
             sendBtn.disabled = true;
-            
-            // Intentar reconexión después de 3 segundos
+
             setTimeout(() => {
                 if (username && authToken) {
                     connectWebSocket();
@@ -130,7 +120,6 @@ function connectWebSocket() {
     }
 }
 
-// ========== ACTUALIZAR ESTADO DE CONEXIÓN ==========
 function updateConnectionStatus(status) {
     connectionStatus.className = 'connection-status mt-2';
     
@@ -153,7 +142,6 @@ function updateConnectionStatus(status) {
     }
 }
 
-// ========== MANEJAR ENVÍO DE MENSAJE ==========
 function handleSendMessage(e) {
     e.preventDefault();
     
@@ -183,7 +171,6 @@ function handleSendMessage(e) {
     }
 }
 
-// ========== AGREGAR MENSAJE RECIBIDO ==========
 function addReceivedMessage(message, isHistory = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message message-received';
@@ -220,7 +207,6 @@ function addReceivedMessage(message, isHistory = false) {
     }
 }
 
-// ========== AGREGAR MENSAJE DEL SISTEMA ==========
 function addSystemMessage(text) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'system-message';
@@ -229,7 +215,6 @@ function addSystemMessage(text) {
     scrollToBottom();
 }
 
-// ========== FORMATEAR TIEMPO ==========
 function formatTime(date) {
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -237,25 +222,21 @@ function formatTime(date) {
     return `${hours}:${minutes}:${seconds}`;
 }
 
-// ========== SCROLL AL FINAL ==========
 function scrollToBottom() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// ========== MOSTRAR PANTALLA DE CHAT ==========
 function showChatScreen() {
     loginScreen.classList.add('d-none');
     chatScreen.classList.remove('d-none');
     currentUsernameSpan.textContent = username;
 }
 
-// ========== MOSTRAR PANTALLA DE LOGIN ==========
 function showLoginScreen() {
     chatScreen.classList.add('d-none');
     loginScreen.classList.remove('d-none');
 }
 
-// ========== MANEJAR LOGOUT ==========
 async function handleLogout() {
     try {
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -280,14 +261,12 @@ async function handleLogout() {
     }
 }
 
-// ========== TOGGLE TEMA ==========
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     applyTheme();
     saveTheme();
 }
 
-// ========== APLICAR TEMA ==========
 function applyTheme() {
     if (currentTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -298,7 +277,6 @@ function applyTheme() {
     }
 }
 
-// ========== GUARDAR TEMA EN LOCALSTORAGE ==========
 function saveTheme() {
     try {
         localStorage.setItem('chatTheme', currentTheme);
@@ -307,7 +285,6 @@ function saveTheme() {
     }
 }
 
-// ========== CARGAR TEMA DESDE LOCALSTORAGE ==========
 function loadTheme() {
     try {
         const savedTheme = localStorage.getItem('chatTheme');
@@ -320,7 +297,6 @@ function loadTheme() {
     }
 }
 
-// ========== PREVENIR CIERRE ACCIDENTAL ==========
 window.addEventListener('beforeunload', (e) => {
     if (isConnected) {
         e.preventDefault();

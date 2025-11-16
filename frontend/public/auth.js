@@ -2,7 +2,6 @@
 var currentUser = null;
 var authToken = null;
 
-// ========== INICIALIZACIÓN DEL FORMULARIO ==========
 document.addEventListener('DOMContentLoaded', () => {
     updateLoginForm();
 });
@@ -58,13 +57,11 @@ function updateLoginForm() {
         </div>
     `;
 
-    // Event listeners
     loginForm.addEventListener('submit', handleLoginSubmit);
     document.getElementById('registerBtn').addEventListener('click', handleRegister);
     document.getElementById('randomUserBtn').addEventListener('click', handleRandomUser);
 }
 
-// ========== MANEJO DE LOGIN ==========
 async function handleLoginSubmit(e) {
     e.preventDefault();
     const email = document.getElementById('emailInput').value.trim();
@@ -74,22 +71,18 @@ async function handleLoginSubmit(e) {
     try {
         showLoading(true);
         
-        // Iniciar sesión con Firebase
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
         
-        // Actualizar nombre si es diferente
         if (displayName && currentUser.displayName !== displayName) {
             await currentUser.updateProfile({ displayName });
         }
         
-        // Obtener token de Firebase
         authToken = await currentUser.getIdToken();
         username = currentUser.displayName || displayName;
         
         console.log('✅ Login exitoso:', username);
         
-        // Llamar a función del app.js para mostrar chat
         if (typeof showChatScreen === 'function') {
             showChatScreen();
             connectWebSocket();
@@ -103,7 +96,6 @@ async function handleLoginSubmit(e) {
     }
 }
 
-// ========== REGISTRO DE USUARIO ==========
 async function handleRegister() {
     const email = document.getElementById('emailInput').value.trim();
     const password = document.getElementById('passwordInput').value;
@@ -117,14 +109,11 @@ async function handleRegister() {
     try {
         showLoading(true);
         
-        // Crear cuenta en Firebase
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
         
-        // Establecer nombre de usuario
         await currentUser.updateProfile({ displayName });
         
-        // Guardar usuario en Firestore
         await db.collection('users').doc(currentUser.uid).set({
             email: currentUser.email,
             displayName: displayName,
@@ -132,14 +121,12 @@ async function handleRegister() {
             lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Obtener token
         authToken = await currentUser.getIdToken();
         username = displayName;
         
         console.log('✅ Registro exitoso:', username);
         alert('¡Cuenta creada exitosamente!');
         
-        // Llamar a función del app.js
         if (typeof showChatScreen === 'function') {
             showChatScreen();
             connectWebSocket();
@@ -153,21 +140,17 @@ async function handleRegister() {
     }
 }
 
-// ========== USUARIO ALEATORIO ==========
 async function handleRandomUser() {
     try {
         showLoading(true);
         
-        // Llamar a la API de usuarios aleatorios
         const response = await fetch('https://random-data-api.com/api/v2/users');
         const userData = await response.json();
         
-        // Generar credenciales
         const email = userData.email;
         const password = 'Random123!';
         const displayName = `${userData.first_name} ${userData.last_name}`;
         
-        // Rellenar formulario
         document.getElementById('emailInput').value = email;
         document.getElementById('passwordInput').value = password;
         document.getElementById('usernameInput').value = displayName;
@@ -182,7 +165,6 @@ async function handleRandomUser() {
     }
 }
 
-// ========== MENSAJES DE ERROR ==========
 function getErrorMessage(errorCode) {
     const errorMessages = {
         'auth/email-already-in-use': 'Este email ya está registrado',
@@ -198,7 +180,6 @@ function getErrorMessage(errorCode) {
     return errorMessages[errorCode] || 'Error de autenticación: ' + errorCode;
 }
 
-// ========== UI HELPERS ==========
 function showLoading(show) {
     const loginForm = document.getElementById('loginForm');
     const buttons = loginForm.querySelectorAll('button');
@@ -214,7 +195,6 @@ function showLoading(show) {
     }
 }
 
-// ========== MONITOR DE ESTADO DE AUTENTICACIÓN ==========
 auth.onAuthStateChanged(async (user) => {
     if (user && !currentUser) {
         currentUser = user;
@@ -222,8 +202,7 @@ auth.onAuthStateChanged(async (user) => {
         username = user.displayName || user.email;
         
         console.log('✅ Estado de autenticación:', username);
-        
-        // Actualizar último login
+
         try {
             await db.collection('users').doc(user.uid).update({
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
